@@ -5,6 +5,7 @@ import subtasks
 import os
 import shutil
 import osm
+import click
 
 
 crs = {'init': 'epsg:26910'}
@@ -21,7 +22,10 @@ neighborhoods = gpd.read_file('./neighborhoods/Neighborhoods.shp')
 neighborhoods = neighborhoods.to_crs(crs)
 
 # Restrict to the blocks within the neighborhood
-mask = neighborhoods['S_HOOD'] == 'University District'
+# TODO: iterate for all neighborhoods
+neighborhood_name = 'University District'
+neighborhood_escname = neighborhood_name.replace(' ', '_')
+mask = neighborhoods['S_HOOD'] == neighborhood_name
 udistrict = neighborhoods.loc[mask, 'geometry'].iloc[0]
 
 tasks = subtasks.filter_blocks_by_poly(blocks, udistrict)
@@ -32,22 +36,20 @@ tasks = tasks.to_crs({'init': 'epsg:4326'})
 # FIXME: create real URLs + real chunked data here
 base_url = 'https://import.opensidewalks.com'
 city = 'seattle'
-neighborhood = 'University_District'
-folder = os.path.join(base_url, city, neighborhood)
+folder = os.path.join(base_url, city, neighborhood_escname)
 poly_ids = tasks['poly_id'].astype(str)
-tasks['url'] = folder + '/' + poly_ids + '/' + 'University_District-' + \
+tasks['url'] = folder + '/' + poly_ids + '/' + neighborhood_escname + '-' + \
                poly_ids + '.osm'
 
-udistrict_path = ('./output/University_District.geojson')
-if os.path.exists(udistrict_path):
-    os.remove(udistrict_path)
-tasks.to_file(udistrict_path, driver='GeoJSON')
-
 # Prepare output directory
-tasks_path = './output/tasks'
+tasks_path = './output/{}'.format(neighborhood_escname)
 if os.path.exists(tasks_path):
     shutil.rmtree(tasks_path)
 os.mkdir(tasks_path)
+
+udistrict_path = ('./output/{}/{}.geojson'.format(neighborhood_escname,
+                                                  neighborhood_escname))
+tasks.to_file(udistrict_path, driver='GeoJSON')
 
 # Load source data, project, and split into tasks
 layers = ['sidewalks', 'crossings', 'curbramps']
@@ -55,7 +57,7 @@ layers_gdf = {}
 
 json_list = []
 # Read the data into GeoDataFrames, store in dictionary
-print 'Reading files...'
+click.echo('Reading files...')
 for layer in layers:
     gdf = gpd.read_file(os.path.join('./inputdata/', layer + '.shp'))
 
@@ -93,14 +95,44 @@ for layer in layers:
 
     layers_gdf[layer] = gdf
 
-print 'Done'
+click.echo('Done')
 
-print 'Splitting into tasks and converting to OSM XML...'
+click.echo('Splitting geometries into separate tasks...')
 # Split into tasks, validate, and convert to OSM XML.
 # for idx, task in tasks.iloc[[0]].iterrows():
+seen_it = {
+    'sidewalks': set(),
+    'curbramps': set(),
+    'crossings': set()
+}
+
+tasks_gdfs = {}
+
+for idx, task in tasks.iterrows():
+    click.echo('Processed task {} of {}'.format(idx, tasks.shape[0]))
+    tasks_gdfs[idx] = {}
+
+    for key, value in layers_gdf.iteritems():
+        # FIXME: need to remove redundant data (use poly_id!)
+        # Extract
+        data = value.loc[value.intersects(task.geometry)].copy()
+
+        # Check the set of IDs we've seen and remove the features if we've
+        # already processed them into a task. Add the new IDs to the ID set for
+        # this layer.
+        data = data.loc[~data.index.isin(seen_it[key])]
+        for layer_idx in list(data.index):
+            seen_it[key].add(layer_idx)
+
+        tasks_gdfs[idx][key] = data
+click.echo('Done')
+
+
+click.echo('Converting to OSM XML...')
+# Convert to OSM XML
 for idx, task in tasks.iterrows():
     task_dirname = os.path.join(tasks_path, str(task['poly_id']))
-    task_fname = 'University_District-{}.osm'.format(task['poly_id'])
+    task_fname = '{}-{}.osm'.format(neighborhood_escname, task['poly_id'])
     task_path = os.path.join(task_dirname, task_fname)
 
     if not os.path.exists(task_dirname):
@@ -109,9 +141,7 @@ for idx, task in tasks.iterrows():
     task_layers = {}
 
     for key, value in layers_gdf.iteritems():
-        # FIXME: need to remove redundant data (use poly_id!)
-        # Extract
-        data = value.loc[value.intersects(task.geometry)].copy()
+        data = tasks_gdfs[idx][key]
 
         # Convert to GeoJSON
         the_json = osm.to_geojson(data)
@@ -132,4 +162,4 @@ for idx, task in tasks.iterrows():
     # Write to file
     osm.write_dom(merged, task_path)
 
-print 'Done'
+click.echo('Done')
