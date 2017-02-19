@@ -1,0 +1,8 @@
+inputdata
+neighborhoods
+output
+
+*.swp
+
+*.pyc
+__pycache__
