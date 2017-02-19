@@ -38,7 +38,7 @@ except ImportError:
                     print('Failed to import ElementTree from any known place')
 
 
-class Feature:
+class Feature(object):
     def __init__(self, json_database=None, schema=None):
         '''
         Load input json object and schema object
@@ -135,11 +135,9 @@ class Feature:
         # where values are a list of xml dom values that can be updated
         # directly during deduping.
         nds = xml_dom.findall('.//nd')
-
         # If there aren't any node refs (e.g. just point data), don't dedupe
         if not nds:
             return xml_dom
-
         nd_map = {}
         for nd in nds:
             ndref = nd.attrib['ref']
@@ -152,7 +150,9 @@ class Feature:
         skip_count = 0
         with click.progressbar(length=total, label='Deduping') as bar:
             while nodes_dict:
+                # For updating progress bar
                 previous = len(nodes_dict)
+
                 to_id, to_node = nodes_dict.popitem()
                 left = float(to_node.attrib['lon'])
                 right = left
@@ -183,8 +183,11 @@ class Feature:
                         skip_count += 1
                         continue
                     # Update node reference in the appropriate nd elements
-                    for element in nd_map[str(from_id)]:
-                        element.attrib['ref'] = str(to_id)
+                    # FIXME: we shouldn't need to check if from_id is in nd_map
+                    # this is a hack to make the process work for our mapathon
+                    if str(from_id) in nd_map:
+                        for element in nd_map[str(from_id)]:
+                            element.attrib['ref'] = str(to_id)
 
                     # Remove the node from the DOM
                     from_node.getparent().remove(from_node)

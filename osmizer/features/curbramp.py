@@ -13,7 +13,7 @@ class CurbRamp(Feature):
 
         '''
         schema_json = schemas.load_schema('crossing')
-        super().__init__(curbramps_json, schema_json)
+        super(CurbRamp, self).__init__(curbramps_json, schema_json)
 
     def convert(self):
         '''Convert curb ramps GeoJSON data to DOM tree, features may be

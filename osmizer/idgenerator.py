@@ -1,10 +1,7 @@
 import uuid
 
 
-class OSMIDGenerator:
-    def __init__(self):
-        super().__init__()
-
+class OSMIDGenerator(object):
     def get_next(self):
         """
         Generate the next unique OSM object id

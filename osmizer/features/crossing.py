@@ -13,7 +13,7 @@ class Crossing(Feature):
 
         '''
         schema_json = schemas.load_schema('crossing')
-        super().__init__(crossings_json, schema_json)
+        super(Crossing, self).__init__(crossings_json, schema_json)
 
     def convert(self):
         '''Convert crossings GeoJSON data to DOM tree, features may be duplicated

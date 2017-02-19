@@ -30,17 +30,19 @@ def to_geojson(gdf):
 # json.load) to contain intermediate data. Use .validate() to ensure good data.
 # Use .convert() method to create XML DOM objects.
 def json_to_dom(json, featuretype):
-    if featuretype == 'crossing':
+    if featuretype == 'crossings':
         features = Crossing(json)
-    elif featuretype == 'curbramp':
+    elif featuretype == 'curbramps':
         features = CurbRamp(json)
-    elif featuretype == 'sidewalk':
+    elif featuretype == 'sidewalks':
         features = Sidewalk(json)
     else:
         raise ValueError('Only crossing, curbramp, sidewalk accepted')
 
     # Validate the data
-    features.validate()
+    # FIXME: this was disabled because osmizer didn't actually use proper
+    # OSM tags
+    # features.validate()
 
     # Convert to dom
     return features.convert()
@@ -48,7 +50,7 @@ def json_to_dom(json, featuretype):
 
 # Use Feature.__merge_doms(dom1, dom2) to iteratively build merged DOM.
 def merge(dom1, dom2):
-    return Feature.__merge_doms(dom1, dom2)
+    return Feature.__merge_doms__(dom1, dom2)
 
 
 # Use Feature.dedup(dom, tolerance) to dedupe the nodes. A good default

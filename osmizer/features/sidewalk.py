@@ -13,7 +13,7 @@ class Sidewalk(Feature):
 
         '''
         schema_json = schemas.load_schema('sidewalk')
-        super().__init__(sidewalks_json, schema_json)
+        super(Sidewalk, self).__init__(sidewalks_json, schema_json)
 
     def convert(self):
         '''Convert sidewalks GeoJSON data to DOM tree, features may be
