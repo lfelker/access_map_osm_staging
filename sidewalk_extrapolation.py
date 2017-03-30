@@ -16,12 +16,14 @@ import fiona
 import seaborn as sns
 plt.style.use('bmh')
 
+
+swk_right = 'kcn_swk__2'
+swk_left = 'kcn_swk__1'
+
 # REMEMBER TO USE PYTHON 3: source py3env/bin/activate
 
 def main(): 
 	data_pth = "./ufl_data"
-	swk_right = 'kcn_swk__2'
-	swk_left = 'kcn_swk__1'
 	geometry = 'geometry'
 
 	#trans_network = gpd.read_file(os.path.join(data_pth, "station_sidewalks_subset.shp"))
@@ -40,24 +42,45 @@ def main():
 
 	# Take 2 No QGIS Prep Work
 	half_mile = 2640
-	swk_ntwrk = gpd.read_file(os.path.join(data_pth, "trans_network_sidewalks.shp"))
+	swk_network = gpd.read_file(os.path.join(data_pth, "trans_network_sidewalks.shp"))
 	lr_stations = gpd.read_file(os.path.join(data_pth, "light_rail_station_info.shp"))
 
-	wilburton = buffer_station(swk_ntwrk, lr_stations, "wilburton", half_mile)
-	overlake = buffer_station(swk_ntwrk, lr_stations, "overlake_villiage", half_mile)
-	judkins = buffer_station(swk_ntwrk, lr_stations, "judkins", half_mile)
-	sum_w = sum_sidewalks(wilburton, geometry, swk_left, swk_right)
-	sum_o = sum_sidewalks(overlake, geometry, swk_left, swk_right)
-	sum_j = sum_sidewalks(judkins, geometry, swk_left, swk_right)
-	print(sum_w, sum_o, sum_j)
+	station_buffers = {}
+	station_buffers['wilburton'] = buffer_station(swk_network, lr_stations, "wilburton", half_mile)
+	station_buffers['overlake'] = buffer_station(swk_network, lr_stations, "overlake_villiage", half_mile)
+	station_buffers['judkins'] = buffer_station(swk_network, lr_stations, "judkins", half_mile)
+	
+	#sum_w = sum_sidewalks(wilburton, geometry, swk_left, swk_right)
+	#sum_o = sum_sidewalks(overlake, geometry, swk_left, swk_right)
+	#sum_j = sum_sidewalks(judkins, geometry, swk_left, swk_right)
+	#print(sum_w, sum_o, sum_j)
 
-	plot_station(wilburton, lr_stations[lr_stations.name == "wilburton"])
+	#plot_station(wilburton, lr_stations[lr_stations.name == "wilburton"])
+	plot_target_stations(swk_network, lr_stations, station_buffers)
 
-# plots data in each frame
-def plot_station(dataframe, station):
-	color = "kcn_swk__1"
-	ax = dataframe.plot(c=color)
-	station.plot(ax=ax)
+def plot_target_stations(swk_network, lr_stations, station_buffers):
+	# retrieve plot_ref so future plot calls can be put on same figure
+	plot_ref = lr_stations.plot(marker='*', color='red', markersize=5)
+	#swk_network is too large to plot with pyplot
+	#swk_network.plot(ax=plot_ref, color='grey', linewidth=0.3)
+	#swk_ntwrk.plot(ax=plot_ref, color='grey')
+	for station_key in station_buffers.keys():
+		station = station_buffers[station_key]
+		filter_sidewalks(station).plot(ax=plot_ref, color='blue')
+	# labels for stations
+	for idx, row in lr_stations.iterrows():
+		point = row['geometry']
+		coord = (point.x, point.y)
+		plt.annotate(s=row['name'], xy=coord, fontsize=8)
+	plt.show()
+
+def filter_sidewalks(df_swks):
+	only_swks = df_swks.query(swk_left + ' == 1 or ' + swk_right + ' == 1')
+	return only_swks
+
+# accepts dataframe to plot and reference to plot
+def plot_station(dataframe, plot_ref):
+	dataframe.plot(ax=plot_ref)
 	plt.show()
 
 #returns dataframe with only swks surrounding station at the specified distance
@@ -67,8 +90,10 @@ def buffer_station(swk_ntwrk, stations, station_name, distance):
 	intersection = swk_ntwrk.loc[swk_ntwrk.intersects(buff)]
 	return intersection
 
-# takes road length and sidewalk left and right data to return the sum of of all sidewalks in meters
-def sum_sidewalks(gdf, sum_row_name, swk_left, swk_right):
+# takes column name of line geometry to sum and column name of sidewalk left and right presence
+# Note: sidewalk presence is specified by 1, 0 means absence.
+# returns the sum of of all sidewalks in meters
+def sum_sidewalks(gdf, sum_row_name):
 	sidewalk_sum = 0.0
 	for index, row in gdf.iterrows():
 		#print(row[sum_row_name], row[swk_left], row[swk_right])
