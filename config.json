@@ -8,5 +8,20 @@
 	"buffer_distance": 2640,
 	"sidewalk_network_shapefile": "trans_network_sidewalks.shp",
 	"station_shapefile": "light_rail_station_info.shp",
-	"target_stations": ["wilburton", "overlake_villiage", "judkins"]
+	"target_stations": ["wilburton", "overlake_villiage", "judkins"],
+	"st_type_code": "KC_FCC_ID",
+	"st_type": {
+		"L": "local",
+		"C": "collector_arterial",
+		"M": "minor_arterial",
+		"P": "principal_arterial",
+		"F": "freeway"
+	},
+	"st_type_offset": {
+		"local": 13.0,
+		"collector_arterial": 15.0,
+		"minor_arterial": 15.0,
+		"principal_arterial": 25.0,
+		"freeway": 40.0
+	}
 }

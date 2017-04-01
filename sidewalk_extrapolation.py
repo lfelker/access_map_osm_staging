@@ -19,24 +19,68 @@ plt.style.use('bmh')
 json_config = open("config.json").read()
 c = json.loads(json_config)
 
-# REMEMBER TO USE PYTHON 3: source py3env/bin/activate
+# REMEMBER TO USE PYTHON 3: 
+# I found it useful to use a virtualenv for this
+# to create: virtualenv -p /usr/bin/python3 py3env
+# to activate: source py3env/bin/activate
 
 def main():
 	swk_network = gpd.read_file(os.path.join(c['data_path'], c['sidewalk_network_shapefile']))
+	print(swk_network.head())
 	lr_stations = gpd.read_file(os.path.join(c['data_path'], c['station_shapefile']))
 
 	station_buffers = {}
 	for station in c['target_stations']:
 		station_buffers[station] = buffer_station(swk_network, lr_stations, station, c['buffer_distance'])
 
-	plot_target_stations(swk_network, lr_stations, station_buffers)
+	#plot_target_stations(swk_network, lr_stations, station_buffers)
+
+	plot_ref = lr_stations.plot(marker='*', color='red', markersize=5)
+	for station_key in station_buffers.keys():
+		streets = station_buffers[station_key]
+		streets.plot(ax=plot_ref, color='grey')
+		swks = generate_swks(streets)
+		plot_swks(swks, plot_ref)
+	plt.show()
+
+	#sidewalks = generate_swks(station_buffers)
+
+# returns geoseries of generated sidewalks within the passes buffers
+def generate_swks(streets):
+	sidewalks = []
+	streets = filter_sidewalks(streets)
+	for idx, row in streets.iterrows():
+		street = row[c['geometry']]
+		col_name = c['st_type_code']
+		print(col_name)
+		st_type_intermediate = row[col_name]
+		st_type = c['st_type'][st_type_intermediate]
+		offset = c['st_type_offset'][st_type]
+		print(offset)
+		if row[c['swk_left']] == c['swk_present']:
+			sidewalks.append(street.parallel_offset(offset, 'left', resolution=16, join_style=1, mitre_limit=40.0))
+		if row[c['swk_right']] == c['swk_present']:
+			sidewalks.append(street.parallel_offset(offset, 'right', resolution=16, join_style=1, mitre_limit=40.0))
+	return sidewalks
+
+# hacky way to plot swks to handle size
+def plot_swks(swks, plot_ref):
+	series_builder = []
+	print(type(swks))
+	idx = 0
+	for sidewalk in swks:
+		series_builder.append(sidewalk)
+		if idx % 100 == 0:
+			GeoSeries(series_builder).plot(ax=plot_ref, color='blue')
+			series_builder = []
+		idx += 1
 
 def plot_target_stations(swk_network, lr_stations, station_buffers):
 	# retrieve plot_ref so future plot calls can be put on same figure
 	plot_ref = lr_stations.plot(marker='*', color='red', markersize=5)
-	#swk_network is too large to plot with pyplot
-	#swk_network.plot(ax=plot_ref, color='grey', linewidth=0.3)
-	#swk_ntwrk.plot(ax=plot_ref, color='grey')
+	# swk_network is too large to plot with pyplot
+	# swk_network.plot(ax=plot_ref, color='grey', linewidth=0.3)
+	# swk_ntwrk.plot(ax=plot_ref, color='grey')
 	for station_key in station_buffers.keys():
 		station = station_buffers[station_key]
 		filter_sidewalks(station).plot(ax=plot_ref, color='blue')
@@ -52,7 +96,8 @@ def filter_sidewalks(df_swks):
 	only_swks = df_swks.query(c['swk_left'] + ' == ' + str(c['swk_present']) + ' or ' + c['swk_right'] + ' == ' + str(c['swk_present']))
 	return only_swks
 
-#returns dataframe with only swks surrounding station at the specified distance
+# returns dataframe with only swks surrounding station at the specified distance
+# Note: the two geodata frames must have the same crs
 def buffer_station(swk_ntwrk, stations, station_name, distance):
 	station = stations[stations.name == station_name]
 	buff = station.buffer(distance).iloc[0]
