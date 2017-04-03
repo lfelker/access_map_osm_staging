@@ -18,6 +18,11 @@ def to_geojson(gdf):
     for idx, row in gdf.iterrows():
         properties = row.to_dict()
         properties.pop('geometry')
+        if 'marked' in properties:
+            if properties['marked'] == '1':
+                print('Zebra!')
+                properties['crossing'] = 'zebra'
+            properties.pop('marked')
         feature = geojson.Feature(geometry=row['geometry'],
                                   properties=properties)
         features.append(feature)
