@@ -28,6 +28,10 @@ neighborhood_escname = neighborhood_name.replace(' ', '_')
 mask = neighborhoods['S_HOOD'] == neighborhood_name
 udistrict = neighborhoods.loc[mask, 'geometry'].iloc[0]
 
+
+
+
+
 tasks = subtasks.filter_blocks_by_poly(blocks, udistrict)
 
 tasks.crs = crs
@@ -79,10 +83,9 @@ for layer in layers:
         #   3) Technically, we could use crossing=zebra to mirror iD.
         #      Unfortunately, the iD and the wiki disagree about how to mark
         #      crossings.
-        gdf = gdf[['geometry']]
+        gdf = gdf[['geometry', 'marked']]
         gdf['highway'] = 'footway'
         gdf['footway'] = 'crossing'
-        gdf['crossing'] = 'zebra'
     elif layer == 'curbramps':
         gdf = gdf[['geometry']]
         gdf['kerb'] = 'lowered'
@@ -140,7 +143,7 @@ for idx, task in tasks.iterrows():
 
     task_layers = {}
 
-    for key, value in layers_gdf.iteritems():
+    for key, value in layers_gdfs.iteritems():
         data = tasks_gdfs[idx][key]
 
         # Convert to GeoJSON

@@ -18,6 +18,7 @@ city = 'seattle'
 # performs: stageing for OSM
 def stage(streets, boundary, title, layers):
 	click.echo('staging ' + title)
+
 	blocks = subtasks.blocks_subtasks(streets)
 	tasks = subtasks.filter_blocks_by_poly(blocks, boundary)
 	tasks.crs = crs_init
@@ -32,7 +33,7 @@ def stage(streets, boundary, title, layers):
 	layers_gdfs = prepare_layer_for_osm(layers_gdfs)
 	tasks_gdfs = split_geometry_into_tasks(layers_gdfs, tasks)
 	convert_to_osm_xml_and_write(layers_gdfs, tasks, tasks_gdfs, tasks_path, title_escp)
-	click.echo('staging file output to folder')
+	click.echo('staging file was output to folder')
 
 
 def prepare_output_directory(tasks, title_escp):

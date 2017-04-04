@@ -25,13 +25,12 @@ c = json.loads(json_config)
 # to activate: source py3env/bin/activate
 
 def main():
-	swk_network = gpd.read_file(os.path.join(c['data_path'], c['sidewalk_network_shapefile']))
-	print(swk_network.head())
+	streets_ntwk = gpd.read_file(os.path.join(c['data_path'], c['sidewalk_network_shapefile']))
 	lr_stations = gpd.read_file(os.path.join(c['data_path'], c['station_shapefile']))
 
 	station_buffers = {}
 	for station in c['target_stations']:
-		station_buffers[station] = buffer_station(swk_network, lr_stations, station, c['buffer_distance'])
+		station_buffers[station] = buffer_station(streets_ntwk, lr_stations, station, c['buffer_distance_feet'])
 
 	#plot_target_stations(swk_network, lr_stations, station_buffers)
 
@@ -43,7 +42,6 @@ def main():
 		plot_swks(swks, plot_ref)
 	plt.show()
 
-	#sidewalks = generate_swks(station_buffers)
 
 # returns geoseries of generated sidewalks within the passes buffers
 def generate_swks(streets):

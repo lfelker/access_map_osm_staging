@@ -13,9 +13,6 @@ crs = {'init': 'epsg:26910'}
 # Get the streets shapefile
 streets = gpd.read_file('./inputdata/streets.shp').to_crs(crs)
 
-# Isolate blocks
-blocks = subtasks.blocks_subtasks(streets)
-
 # Get the neighborhoods
 neighborhoods = gpd.read_file('./neighborhoods/Neighborhoods.shp')
 
