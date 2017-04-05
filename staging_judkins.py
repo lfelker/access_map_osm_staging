@@ -10,7 +10,7 @@ import click
 import subtasks
 import staging
 
-
+# visualizations for testing intersections
 import matplotlib.pyplot as plt
 import matplotlib
 import fiona
